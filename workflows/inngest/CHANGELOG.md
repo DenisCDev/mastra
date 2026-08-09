@@ -1,5 +1,26 @@
 # @mastra/inngest
 
+## 1.8.6-alpha.0
+
+### Patch Changes
+
+- Agent scorers now run on the Inngest durable engine. ([#21038](https://github.com/mastra-ai/mastra/pull/21038))
+
+  An agent configured with `scorers` never had them executed when running via `createInngestAgent()` — no scorer ran, no spans, no persisted scores, and no error. Core's durable workflow gained an `execute-scorers` step that the Inngest workflow builder, a copy of it, never picked up.
+
+  Scorer execution now lives in the durable workflow's shared module and is used by both engines, so scorers behave identically on either one.
+
+- Make `abort()` stop durable agent runs that are executing in another process ([#21009](https://github.com/mastra-ai/mastra/pull/21009))
+
+  A durable agent's steps often run somewhere other than the process that started them — another replica behind a load balancer, or an Inngest step worker. `abort()` only flipped an in-memory `AbortController`, which those processes never see, so aborting a durable or Inngest agent run silently did nothing in exactly the deployments durable agents exist for.
+
+  Abort intent now travels over pubsub. The executing process picks the request up and flips its own controller, so the run unwinds the same way an in-process abort does and still emits its terminal stream event — consumers waiting on the stream are released instead of hanging. `abort()` now returns a promise so callers can await dispatch; ignoring it preserves the previous fire-and-forget behavior.
+
+- Fixed Inngest connect workers to run durable agent output processing, memory persistence, and thread title generation before completion. ([#20926](https://github.com/mastra-ai/mastra/pull/20926))
+
+- Updated dependencies [[`c47165c`](https://github.com/mastra-ai/mastra/commit/c47165c983c87594c6952f1fd2fa51a90205034c), [`e08e789`](https://github.com/mastra-ai/mastra/commit/e08e789c1bf4cd2fe46363f7a4728536ceccc9bd), [`35cc901`](https://github.com/mastra-ai/mastra/commit/35cc90102cf834a84827acaf9eee0b6d6d1e2a3b), [`f33264f`](https://github.com/mastra-ai/mastra/commit/f33264f517ae603279afd5c4251e2b40f6dd3618), [`689f2c4`](https://github.com/mastra-ai/mastra/commit/689f2c4b6c0835fe455702b01d21daa8abcd9331), [`eeae63e`](https://github.com/mastra-ai/mastra/commit/eeae63e7fbe8e1f237adc69bca6e2ac13c5ca907), [`4c186a0`](https://github.com/mastra-ai/mastra/commit/4c186a017275f45e6ed4c09de0f89550e2d09e8c), [`b0fa077`](https://github.com/mastra-ai/mastra/commit/b0fa077bcbc9b08551846fe372a0d3d15b71ed72)]:
+  - @mastra/core@1.58.0-alpha.8
+
 ## 1.8.5
 
 ### Patch Changes
