@@ -58,6 +58,34 @@ function toolhandlingTests(version: 'v1' | 'v2' | 'v3' | 'v4') {
 
         expect(resolveModel).not.toHaveBeenCalled();
       });
+
+      it('resolves the model once for all toolset tools', async () => {
+        const resolveModel = vi.fn(async () => dummyModel);
+        const toolset = Object.fromEntries(
+          Array.from({ length: 10 }, (_, index) => [
+            `tool${index}`,
+            createTool({
+              id: `tool-${index}`,
+              description: `Test tool ${index}.`,
+              inputSchema: z.object({}),
+              execute: async () => index,
+            }),
+          ]),
+        );
+        const agent = new Agent({
+          id: 'dynamic-model-toolset-agent',
+          name: 'dynamic-model-toolset-agent',
+          instructions: 'Use the toolset tools.',
+          model: resolveModel,
+        });
+
+        await agent.getToolsForExecution({
+          requestContext: new RequestContext(),
+          toolsets: { test: toolset },
+        });
+
+        expect(resolveModel).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('should handle tool name collisions caused by formatting', async () => {
